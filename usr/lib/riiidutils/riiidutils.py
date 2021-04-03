@@ -1,5 +1,6 @@
 import torch
 
+
 class RiiidDataset(torch.utils.data.Dataset):
     def __init__(self, x_cat, x_cont, y):
         seq_lengths = [len(el) for el in x_cat]
@@ -17,7 +18,7 @@ def riiid_collate_fn(batch):
     cat, cont, y = zip(*batch)
     cat = pad_sequence_left([torch.tensor(el) for el in cat], batch_first=True)
     cont = pad_sequence_left([torch.tensor(el, dtype=torch.float) for el in cont], batch_first=True)
-    y = torch.tensor(y, dtype=torch.float).unsqueeze(1)
+    y = torch.tensor(y, dtype=torch.float)
     return {'cat': cat, 'cont': cont, 'y': y}
 
 def pad_sequence_left(sequences, batch_first=False, padding_value=0.0):

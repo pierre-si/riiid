@@ -2,6 +2,7 @@ import torch
 from torch import nn
 import torch.nn.functional as F
     
+    
 class RiiidEmbedding(nn.Module):
     def __init__(self, maximums, pad_idx=0, emb_size=16, dim=128):
         super().__init__()
@@ -116,7 +117,7 @@ class Riiid(nn.Module):
         x = self.encoder_layer(x, src_key_padding_mask=pad_mask)
         x = x.transpose(1, 0)
         x = self.lstm(x)[1][0]
-        x = self.dnn(x).squeeze(1)
+        x = self.dnn(x)
         
         return x 
 
