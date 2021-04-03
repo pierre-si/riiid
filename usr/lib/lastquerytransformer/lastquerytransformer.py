@@ -110,7 +110,7 @@ class Riiid(nn.Module):
         )
                 
     def forward(self, x_cat, x_cont):
-        pad_mask = self.make_padding_mask(x_cat).transpose(1, 0)
+        pad_mask = self.make_padding_mask(x_cat)
         x = self.emb(x_cat, x_cont)
 
         x = x.transpose(1, 0) # pytorch MHA requires input to be S×N×E
@@ -122,5 +122,5 @@ class Riiid(nn.Module):
         return x 
 
     def make_padding_mask(self, x_cat):
-        pad_mask = (x_cat[:, :, 0] == self.pad_idx).transpose(1, 0)
+        pad_mask = (x_cat[:, :, 0] == self.pad_idx)
         return pad_mask
