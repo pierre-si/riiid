@@ -1,4 +1,7 @@
 input/
+tensorboard/
+*~
+kernel-metadata.json
 
 # Byte-compiled / optimized / DLL files
 __pycache__/
@@ -27,6 +30,8 @@ share/python-wheels/
 .installed.cfg
 *.egg
 MANIFEST
+*.pickle
+*.feather
 
 # PyInstaller
 #  Usually these files are written by a python script from a template
