@@ -101,7 +101,7 @@ class Riiid(nn.Module):
         self.pad_idx = pad_idx
         self.emb = RiiidEmbedding(maximums, pad_idx=pad_idx)
         self.encoder_layer = LastQueryTransformerEncoderLayer(d_model=128, nhead=8)
-        self.lstm = nn.LSTM(input_size=128, hidden_size=128, batch_first=True)
+        self.lstm = nn.LSTM(input_size=128, hidden_size=128, batch_first=False) # batch_first is False by default.
         self.dnn = nn.Sequential(
             nn.Linear(128, 256),
             nn.ReLU(),
@@ -115,10 +115,11 @@ class Riiid(nn.Module):
 
         x = x.transpose(1, 0) # pytorch MHA requires input to be S×N×E
         x = self.encoder_layer(x, src_key_padding_mask=pad_mask)
+        x = self.lstm(x)[1][0] # h_n: n_layers*n_directions (=1) × batch × hidden_size
         x = x.transpose(1, 0)
-        x = self.lstm(x)[1][0]
-        x = self.dnn(x)
-        
+
+        x = self.dnn(x) # batch × 1 × 1
+
         return x 
 
     def make_padding_mask(self, x_cat):
