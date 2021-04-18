@@ -96,11 +96,11 @@ class LastQueryTransformerEncoderLayer(nn.Module):
         return src
 
 class Riiid(nn.Module):
-    def __init__(self, maximums, pad_idx = 0):
+    def __init__(self, maximums, pad_idx = 0, dropout = 0.1):
         super(Riiid, self).__init__()
         self.pad_idx = pad_idx
         self.emb = RiiidEmbedding(maximums, pad_idx=pad_idx)
-        self.encoder_layer = LastQueryTransformerEncoderLayer(d_model=128, nhead=8)
+        self.encoder_layer = LastQueryTransformerEncoderLayer(d_model=128, nhead=8, dropout=dropout)
         self.lstm = nn.LSTM(input_size=128, hidden_size=128, batch_first=False) # batch_first is False by default.
         self.dnn = nn.Sequential(
             nn.Linear(128, 256),
