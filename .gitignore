@@ -2,6 +2,7 @@ input/
 output/
 tensorboard/
 *~
+.vscode
 kernel-metadata.json
 
 # Byte-compiled / optimized / DLL files
