@@ -100,13 +100,13 @@ class Riiid(nn.Module):
         super(Riiid, self).__init__()
         self.pad_idx = pad_idx
         self.emb = RiiidEmbedding(maximums, pad_idx=pad_idx)
-        self.encoder_layer = LastQueryTransformerEncoderLayer(d_model=128, nhead=8, dropout=dropout)
+        self.encoder_layer = LastQueryTransformerEncoderLayer(d_model=128, nhead=8, dim_feedforward=256, dropout=dropout)
         self.lstm = nn.LSTM(input_size=128, hidden_size=128, batch_first=False) # batch_first is False by default.
         self.dnn = nn.Sequential(
-            nn.Linear(128, 256),
-            nn.ReLU(),
+            nn.Linear(128, 1),#256),
+            #nn.ReLU(),
             #nn.BatchNorm1d(256),
-            nn.Linear(256, 1),
+            #nn.Linear(256, 1),
         )
                 
     def forward(self, x_cat, x_cont):
