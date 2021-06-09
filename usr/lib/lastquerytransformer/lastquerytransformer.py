@@ -125,22 +125,23 @@ class Riiid(nn.Module):
         self.encoder_layer = LastQueryTransformerEncoderLayer(d_model=128, nhead=8, dim_feedforward=256, dropout=dropout)
         self.lstm = nn.LSTM(input_size=128, hidden_size=128, batch_first=False) # batch_first is False by default.
         self.dnn = nn.Sequential(
-            nn.Linear(128, 1),#256),
-            #nn.ReLU(),
+            nn.Linear(128, 128),
+            nn.ReLU(),
             #nn.BatchNorm1d(256),
-            #nn.Linear(256, 1),
+            nn.Linear(128, 1),
         )
                 
     def forward(self, x_cat, x_cont):
         pad_mask = self.make_padding_mask(x_cat)
         x = self.emb(x_cat, x_cont)
-        x = self.pos_encoder(x)
-        x = x.transpose(1, 0) # pytorch MHA requires input to be S×N×E
+        #x = self.pos_encoder(x)
+        x = x.transpose(1, 0) # pytorch MHA requires input to be S×N×E (S: source sequence length)
         x = self.encoder_layer(x, src_key_padding_mask=pad_mask)
-        x = self.lstm(x)[1][0] # h_n: n_layers*n_directions (=1) × batch × hidden_size
-        x = x.transpose(1, 0)
+        x = self.lstm(x)[0][-1] # output: S × N × hidden_size, thus N × hidden
+        #x = self.lstm(x)[1][0] # h_n: n_layers*n_directions (=1) × N × hidden_size
+        #x = x.transpose(1, 0)
 
-        x = self.dnn(x) # batch × 1 × 1
+        x = self.dnn(x) # N × 1
 
         return x 
 
