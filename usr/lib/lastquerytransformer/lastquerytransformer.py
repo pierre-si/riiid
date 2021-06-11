@@ -123,9 +123,13 @@ class Riiid(nn.Module):
         self.pos_encoder = PositionalEncoding(d_model=128, dropout=dropout, max_len=16409)
         
         self.encoder_layer = LastQueryTransformerEncoderLayer(d_model=128, nhead=8, dim_feedforward=256, dropout=dropout)
-        self.lstm = nn.LSTM(input_size=128, hidden_size=128, batch_first=False) # batch_first is False by default.
+
+        bidirectional = False
+        self.lstm = nn.LSTM(input_size=128, hidden_size=128, batch_first=False, bidirectional=bidirectional) # batch_first is False by default.
+
+        dnn_in = 256 if bidirectional else 128
         self.dnn = nn.Sequential(
-            nn.Linear(128, 128),
+            nn.Linear(dnn_in, 128),
             nn.ReLU(),
             #nn.BatchNorm1d(256),
             nn.Linear(128, 1),
