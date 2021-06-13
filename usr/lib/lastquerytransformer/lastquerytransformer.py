@@ -22,7 +22,9 @@ class RiiidEmbedding(nn.Module):
         if len(x_cat.size()) == 2:
             x_cat = x_cat.unsqueeze(0)
             x_cont = x_cont.unsqueeze(0)
-        q_emb = self.question_emb(x_cat[:, :, 0])
+        # x_cat: N×L×3
+        # x_cat[:, :, 0]: N×L
+        q_emb = self.question_emb(x_cat[:, :, 0]) # N×L×D
         p_emb = self.part_emb(x_cat[:, :, 1])
         a_emb = self.answer_emb(x_cat[:, :, 2])
         cont_emb = self.cont_emb(x_cont)
@@ -120,7 +122,7 @@ class Riiid(nn.Module):
         super(Riiid, self).__init__()
         self.pad_idx = pad_idx
         self.emb = RiiidEmbedding(maximums, pad_idx=pad_idx, dim=128)
-        self.pos_encoder = PositionalEncoding(d_model=128, dropout=dropout, max_len=16409)
+        #self.pos_encoder = PositionalEncoding(d_model=128, dropout=dropout, max_len=16409)
         
         self.encoder_layer = LastQueryTransformerEncoderLayer(d_model=128, nhead=8, dim_feedforward=256, dropout=dropout)
 
