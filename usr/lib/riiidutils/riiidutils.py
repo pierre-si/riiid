@@ -1,5 +1,5 @@
 import torch
-
+from torch.nn.utils.rnn import pad_sequence
 
 class RiiidDataset(torch.utils.data.Dataset):
     def __init__(self, x_cat, x_cont, y, sort_sequences=True):
@@ -14,17 +14,26 @@ class RiiidDataset(torch.utils.data.Dataset):
 
     def __getitem__(self, key):
         #return {'cat': self.cat[key], 'cont': self.cont[key], 'y': self.y[key]}
-        return self.cat[key], self.cont[key], self.y[key]
+        return self.cat[key], self.cont[key], self.y[key], self.cat[key].shape[0]
         
     def __len__(self):
         return len(self.cat)
 
 def riiid_collate_fn(batch):
-    cat, cont, y = zip(*batch)
+    cat, cont, y, _ = zip(*batch)
     cat = pad_sequence_left([torch.tensor(el) for el in cat], batch_first=True)
     cont = pad_sequence_left([torch.tensor(el, dtype=torch.float) for el in cont], batch_first=True)
     y = torch.tensor(y, dtype=torch.float)
     return {'cat': cat, 'cont': cont, 'y': y}
+
+def riiid_collate_fn_right_padding(batch):
+    cat, cont, y, lengths = zip(*batch)
+    cat = pad_sequence([torch.tensor(el) for el in cat], batch_first=True)
+    cont = pad_sequence([torch.tensor(el, dtype=torch.float) for el in cont], batch_first=True)
+    y = torch.tensor(y, dtype=torch.float)
+    lengths = torch.tensor(lengths, dtype=torch.long)
+    return {'cat': cat, 'cont': cont, 'y': y, 'lengths': lengths}
+
 
 def pad_sequence_left(sequences, batch_first=False, padding_value=0.0):
     r"""Pad a list of variable length Tensors with ``padding_value`` to the left.

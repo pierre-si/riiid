@@ -97,7 +97,7 @@ class LastQueryTransformerEncoderLayer(nn.Module):
             state['activation'] = F.relu
         super(LastQueryTransformerEncoderLayer, self).__setstate__(state)
 
-    def forward(self, src, src_mask = None, src_key_padding_mask = None):
+    def forward(self, src, src_mask = None, src_key_padding_mask = None, seq_lengths= None):
         r"""Pass the input through the encoder layer.
 
         Args:
@@ -108,7 +108,14 @@ class LastQueryTransformerEncoderLayer(nn.Module):
         Shape:
             see the docs in Transformer class.
         """
-        src2 = self.self_attn(src[-1:, :, :], src, src, attn_mask=src_mask,
+        if seq_lengths is None: # when using left padding
+            queries = src[-1:, :, :]
+        else:
+            batch_indexes = torch.arange(src.size()[1])
+            seq_indexes = seq_lengths - 1
+            queries = src[seq_indexes, batch_indexes].unsqueeze(0)
+
+        src2 = self.self_attn(queries, src, src, attn_mask=src_mask,
                               key_padding_mask=src_key_padding_mask)[0]
         src = src + self.dropout1(src2) # scr2's first dimension (length) is broadcasted
         src = self.norm1(src)
@@ -137,12 +144,13 @@ class Riiid(nn.Module):
             nn.Linear(128, 1),
         )
                 
-    def forward(self, x_cat, x_cont):
+    def forward(self, x_cat, x_cont, seq_lengths=None):
         pad_mask = self.make_padding_mask(x_cat)
         x = self.emb(x_cat, x_cont)
         #x = self.pos_encoder(x)
         x = x.transpose(1, 0) # pytorch MHA requires input to be S×N×E (S: source sequence length)
-        x = self.encoder_layer(x, src_key_padding_mask=pad_mask)
+        x = self.encoder_layer(x, src_key_padding_mask=pad_mask, seq_lengths=seq_lengths)
+        #x = nn.utils.rnn.pack_padded_sequence(x, )
         x = self.lstm(x)[0][-1] # output: S × N × hidden_size, thus N × hidden
         #x = self.lstm(x)[1][0] # h_n: n_layers*n_directions (=1) × N × hidden_size
         #x = x.transpose(1, 0)
