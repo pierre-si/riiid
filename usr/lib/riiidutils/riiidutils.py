@@ -5,7 +5,8 @@ class RiiidDataset(torch.utils.data.Dataset):
     def __init__(self, x_cat, x_cont, y, sort_sequences=True):
         seq_lengths = [len(el) for el in x_cat]
         if sort_sequences:
-            _, self.cat, self.cont, self.y = map(list, zip(*sorted(zip(seq_lengths, x_cat, x_cont, y), key=lambda tup: tup[0], reverse=False)))
+            # sequences must be sorted and order reversed to use pack_padded_sequence with enforce_sorted = True
+            _, self.cat, self.cont, self.y = map(list, zip(*sorted(zip(seq_lengths, x_cat, x_cont, y), key=lambda tup: tup[0], reverse=True)))
             #map(list, zip(*sorted(zip(x_cat, x_cont, y), key= lambda i: len(i[0]), reverse=True))) # does not seem to work
         else:
             self.cat = x_cat
