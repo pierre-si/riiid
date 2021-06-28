@@ -152,7 +152,7 @@ class Riiid(nn.Module):
         x = self.encoder_layer(x, src_key_padding_mask=pad_mask, seq_lengths=seq_lengths)
         x = nn.utils.rnn.pack_padded_sequence(x, seq_lengths)
         #x = self.lstm(x)[0][-1] # output: S × N × hidden_size, thus N × hidden
-        x = self.lstm(x)[1][0][0] # (h_n, c_n)[0][0], h_n: n_layers*n_directions (=1) × N × hidden_size
+        x = self.lstm(x)[1][0][-1] # (h_n, c_n)[0][0], h_n: n_layers*n_directions (=1) × N × hidden_size
         #x = x.transpose(1, 0)
 
         x = self.dnn(x) # N × 1
