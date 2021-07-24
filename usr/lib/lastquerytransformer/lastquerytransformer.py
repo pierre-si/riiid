@@ -6,17 +6,20 @@ import torch.nn.functional as F
     
     
 class RiiidEmbedding(nn.Module):
-    def __init__(self, maximums, pad_idx=0, emb_size=16, dim=128):
+    def __init__(self, maximums, emb_size, dim=128, pad_idx=0):
         super().__init__()
         self.emb_size = emb_size
-        self.question_emb = nn.Embedding(maximums['question_id']+1, emb_size, padding_idx = pad_idx)
-        self.part_emb = nn.Embedding(maximums['part']+1, emb_size, padding_idx = pad_idx)
-        self.answer_emb = nn.Embedding(maximums['answered_correctly']+1, emb_size, padding_idx=pad_idx)
+        self.question_emb = nn.Embedding(maximums['question_id']+1, emb_size, padding_idx = pad_idx, max_norm=1)
+        self.part_emb = nn.Embedding(maximums['part']+1, emb_size, padding_idx = pad_idx, max_norm=1)
+        self.answer_emb = nn.Embedding(maximums['answered_correctly']+1, emb_size, padding_idx=pad_idx, max_norm=1)
         self.cont_emb = nn.Sequential(
             nn.Linear(2, emb_size),
             nn.LayerNorm(emb_size)
             )
-        self.merge = nn.Linear(4*emb_size, dim)#, bias=False)
+        self.merge = nn.Sequential(
+            nn.Linear(4*emb_size, dim),#, bias=False),
+            nn.LayerNorm(dim)
+        )
 
     def forward(self, x_cat, x_cont):
         if len(x_cat.size()) == 2:
@@ -128,7 +131,7 @@ class Riiid(nn.Module):
     def __init__(self, maximums, pad_idx = 0, dropout = 0.1):
         super(Riiid, self).__init__()
         self.pad_idx = pad_idx
-        self.emb = RiiidEmbedding(maximums, pad_idx=pad_idx, dim=128)
+        self.emb = RiiidEmbedding(maximums, emb_size=16, pad_idx=pad_idx)
         #self.pos_encoder = PositionalEncoding(d_model=128, dropout=dropout, max_len=16409)
         
         self.encoder_layer = LastQueryTransformerEncoderLayer(d_model=128, nhead=8, dim_feedforward=256, dropout=dropout)
