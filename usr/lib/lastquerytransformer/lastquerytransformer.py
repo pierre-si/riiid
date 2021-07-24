@@ -9,9 +9,9 @@ class RiiidEmbedding(nn.Module):
     def __init__(self, maximums, emb_size, dim=128, pad_idx=0):
         super().__init__()
         self.emb_size = emb_size
-        self.question_emb = nn.Embedding(maximums['question_id']+1, emb_size, padding_idx = pad_idx, max_norm=1)
-        self.part_emb = nn.Embedding(maximums['part']+1, emb_size, padding_idx = pad_idx, max_norm=1)
-        self.answer_emb = nn.Embedding(maximums['answered_correctly']+1, emb_size, padding_idx=pad_idx, max_norm=1)
+        self.question_emb = nn.Embedding(maximums['question_id']+1, emb_size, padding_idx = pad_idx)#, max_norm=1)
+        self.part_emb = nn.Embedding(maximums['part']+1, emb_size, padding_idx = pad_idx)#, max_norm=1)
+        self.answer_emb = nn.Embedding(maximums['answered_correctly']+1, emb_size, padding_idx=pad_idx)#, max_norm=1)
         self.cont_emb = nn.Sequential(
             nn.Linear(2, emb_size),
             nn.LayerNorm(emb_size)
@@ -140,12 +140,17 @@ class Riiid(nn.Module):
         self.lstm = nn.LSTM(input_size=128, hidden_size=128, batch_first=False, bidirectional=bidirectional) # batch_first is False by default.
 
         dnn_in = 256 if bidirectional else 128
-        self.dnn = nn.Sequential(
+        self.ffn = nn.Sequential(
             nn.Linear(dnn_in, 128),
             nn.ReLU(),
-            #nn.BatchNorm1d(256),
-            nn.Linear(128, 1),
+            nn.Linear(128, 128),
         )
+
+        self.dropout = nn.Dropout(dropout)
+        self.norm = nn.LayerNorm(128)
+
+        self.lin = nn.Linear(128, 1)
+
                 
     def forward(self, x_cat, x_cont, seq_lengths=None):
         pad_mask = self.make_padding_mask(x_cat)
@@ -158,9 +163,10 @@ class Riiid(nn.Module):
         x = self.lstm(x)[1][0][-1] # (h_n, c_n)[0][0], h_n: n_layers*n_directions (=1) × N × hidden_size
         #x = x.transpose(1, 0)
 
-        x = self.dnn(x) # N × 1
-
-        return x 
+        x2 = self.ffn(x) # N × 1
+        x = x + self.dropout(x2)
+        x = self.norm(x)
+        return self.lin(x) 
 
     def make_padding_mask(self, x_cat):
         pad_mask = (x_cat[:, :, 0] == self.pad_idx)
