@@ -2,7 +2,7 @@ import torch
 from torch.nn.utils.rnn import pad_sequence
 
 class RiiidDataset(torch.utils.data.Dataset):
-    def __init__(self, x_cat, x_cont, y, sort_sequences=True):
+    def __init__(self, x_cat, x_cont, y, sort_sequences=True, max_length=0):
         seq_lengths = [len(el) for el in x_cat]
         if sort_sequences:
             # sequences must be sorted and order reversed to use pack_padded_sequence with enforce_sorted = True
@@ -12,10 +12,11 @@ class RiiidDataset(torch.utils.data.Dataset):
             self.cat = x_cat
             self.cont = x_cont
             self.y = y
+        self.max_len = max_length
 
     def __getitem__(self, key):
         #return {'cat': self.cat[key], 'cont': self.cont[key], 'y': self.y[key]}
-        return self.cat[key], self.cont[key], self.y[key], self.cat[key].shape[0]
+        return self.cat[key][-self.max_len:], self.cont[key][-self.max_len:], self.y[key], self.cat[key][-self.max_len:].shape[0]
         
     def __len__(self):
         return len(self.cat)
