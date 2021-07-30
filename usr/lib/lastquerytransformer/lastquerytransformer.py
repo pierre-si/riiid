@@ -131,15 +131,17 @@ class Riiid(nn.Module):
     def __init__(self, maximums, pad_idx = 0, dropout = 0.1):
         super(Riiid, self).__init__()
         self.pad_idx = pad_idx
-        self.emb = RiiidEmbedding(maximums, emb_size=16, pad_idx=pad_idx)
+        self.emb = RiiidEmbedding(maximums, emb_size=128, pad_idx=pad_idx)
         #self.pos_encoder = PositionalEncoding(d_model=128, dropout=dropout, max_len=16409)
         
         self.encoder_layer = LastQueryTransformerEncoderLayer(d_model=128, nhead=8, dim_feedforward=256, dropout=dropout)
 
         bidirectional = False
-        self.lstm = nn.LSTM(input_size=128, hidden_size=128, batch_first=False, bidirectional=bidirectional) # batch_first is False by default.
+        self.lstm = nn.LSTM(input_size=128, hidden_size=128, batch_first=False, dropout=dropout, bidirectional=bidirectional) # batch_first is False by default.
 
         dnn_in = 256 if bidirectional else 128
+        self.norm1 = nn.LayerNorm(dnn_in)
+
         self.ffn = nn.Sequential(
             nn.Linear(dnn_in, 128),
             nn.ReLU(),
@@ -163,7 +165,8 @@ class Riiid(nn.Module):
         #x = self.lstm(x)[0][-1] # output: S × N × hidden_size, thus N × hidden
         x = self.lstm(x)[1][0][-1] # (h_n, c_n)[0][0], h_n: n_layers*n_directions (=1) × N × hidden_size
         #x = x.transpose(1, 0)
-
+        x = self.norm1(x)
+        
         x2 = self.ffn(x) # N × 1
         x = x + self.dropout(x2)
         x = self.norm(x)
