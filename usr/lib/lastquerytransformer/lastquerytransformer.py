@@ -138,9 +138,10 @@ class Riiid(nn.Module):
         self.encoder_layer = LastQueryTransformerEncoderLayer(d_model=128, nhead=8, dim_feedforward=256, dropout=dropout)
 
         bidirectional = False
-        self.lstm = nn.LSTM(input_size=128, hidden_size=128, batch_first=False, dropout=dropout, bidirectional=bidirectional) # batch_first is False by default.
+        self.lstm = nn.LSTM(input_size=128, hidden_size=128, batch_first=False, bidirectional=bidirectional) # batch_first is False by default.
 
         dnn_in = 256 if bidirectional else 128
+        self.dropout1 = nn.Dropout(dropout)
         self.norm1 = nn.LayerNorm(dnn_in)
 
         self.ffn = nn.Sequential(
@@ -168,6 +169,7 @@ class Riiid(nn.Module):
             x = nn.utils.rnn.pack_padded_sequence(x, seq_lengths)
         #x = self.lstm(x)[0][-1] # output: S × N × hidden_size, thus N × hidden
         x = self.lstm(x)[1][0][-1] # (h_n, c_n)[0][0], h_n: n_layers*n_directions (=1) × N × hidden_size
+        x = self.dropout1(x)
         x = self.norm1(x)
         
         x2 = self.ffn(x) # N × 1
