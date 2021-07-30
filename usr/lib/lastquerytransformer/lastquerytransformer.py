@@ -6,18 +6,19 @@ import torch.nn.functional as F
     
     
 class RiiidEmbedding(nn.Module):
-    def __init__(self, maximums, emb_size, dim=128, pad_idx=0):
+    def __init__(self, maximums, emb_size, dim=128, pad_idx=0, dropout=0):
         super().__init__()
         self.emb_size = emb_size
         self.question_emb = nn.Embedding(maximums['question_id']+1, emb_size, padding_idx = pad_idx)#, max_norm=1)
         self.part_emb = nn.Embedding(maximums['part']+1, emb_size, padding_idx = pad_idx)#, max_norm=1)
         self.answer_emb = nn.Embedding(maximums['answered_correctly']+1, emb_size, padding_idx=pad_idx)#, max_norm=1)
         self.cont_emb = nn.Sequential(
-            nn.Linear(2, emb_size),
+            nn.Linear(2, emb_size, bias=False),
             nn.LayerNorm(emb_size)
             )
         self.merge = nn.Sequential(
-            nn.Linear(4*emb_size, dim),#, bias=False),
+            nn.Linear(4*emb_size, dim, bias=False),
+            nn.Dropout(dropout),
             nn.LayerNorm(dim)
         )
 
@@ -131,7 +132,7 @@ class Riiid(nn.Module):
     def __init__(self, maximums, pad_idx = 0, dropout = 0.1):
         super(Riiid, self).__init__()
         self.pad_idx = pad_idx
-        self.emb = RiiidEmbedding(maximums, emb_size=128, pad_idx=pad_idx)
+        self.emb = RiiidEmbedding(maximums, emb_size=128, pad_idx=pad_idx, dropout=dropout)
         #self.pos_encoder = PositionalEncoding(d_model=128, dropout=dropout, max_len=16409)
         
         self.encoder_layer = LastQueryTransformerEncoderLayer(d_model=128, nhead=8, dim_feedforward=256, dropout=dropout)
@@ -145,6 +146,7 @@ class Riiid(nn.Module):
         self.ffn = nn.Sequential(
             nn.Linear(dnn_in, 128),
             nn.ReLU(),
+            nn.Dropout(dropout),
             nn.Linear(128, 128),
         )
 
@@ -158,18 +160,20 @@ class Riiid(nn.Module):
         pad_mask = self.make_padding_mask(x_cat)
         x = self.emb(x_cat, x_cont)
         #x = self.pos_encoder(x)
+
         x = x.transpose(1, 0) # pytorch MHA requires input to be S×N×E (S: source sequence length)
         x = self.encoder_layer(x, src_key_padding_mask=pad_mask, seq_lengths=seq_lengths)
+
         if seq_lengths:
             x = nn.utils.rnn.pack_padded_sequence(x, seq_lengths)
         #x = self.lstm(x)[0][-1] # output: S × N × hidden_size, thus N × hidden
         x = self.lstm(x)[1][0][-1] # (h_n, c_n)[0][0], h_n: n_layers*n_directions (=1) × N × hidden_size
-        #x = x.transpose(1, 0)
         x = self.norm1(x)
         
         x2 = self.ffn(x) # N × 1
         x = x + self.dropout(x2)
         x = self.norm(x)
+
         return self.lin(x) 
 
     def make_padding_mask(self, x_cat):
